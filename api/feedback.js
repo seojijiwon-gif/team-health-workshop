@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022', // 올바른 최신 모델명으로 수정됨!
+        model: 'claude-3-5-sonnet-20240620', // 올바른 최신 모델명으로 수정됨!
         max_tokens: 2000,
         system,
         messages: [{ role: 'user', content: user }]
