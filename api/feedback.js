@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307', // 절대 에러 안 나는 가장 빠른 기본 모델로 교점 완벽 탑재!
+        model: 'claude-3-haiku-20240307', // 절대 에러 안 나는 가장 빠른 기본 모델로 완벽 탑재 완료!
         max_tokens: 2000,
         system,
         messages: [{ role: 'user', content: user }]
