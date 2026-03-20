@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-sonnet-20241022', // 올바른 최신 모델명으로 수정됨!
         max_tokens: 2000,
         system,
         messages: [{ role: 'user', content: user }]
@@ -92,6 +92,13 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    // 통신 상태 체크 추가
+    if (!response.ok) {
+      console.error('Claude API Error:', JSON.stringify(data));
+      throw new Error(data.error?.message || 'API responded with an error');
+    }
+
     const raw = data.content?.[0]?.text || '{}';
     console.log('API raw response:', raw);
 
@@ -112,7 +119,7 @@ export default async function handler(req, res) {
     res.status(500).json({
       feedback: {
         diagnosis: '분석 중 오류가 발생했습니다.',
-        empathy: '잠시 후 다시 시도해주세요.',
+        empathy: '클로드 서버와의 통신에 실패했습니다.',
         reframe: '', action: '', suggestions: [],
         pattern: '', cheer: '', solutions: []
       }
