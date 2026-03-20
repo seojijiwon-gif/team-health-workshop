@@ -327,6 +327,26 @@ textarea::placeholder { color: var(--muted2); }
 /* ── DIVIDER ── */
 hr { border: none; border-top: 0.5px solid var(--border); margin: 2rem 0; }
 
+/* ── TABS ── */
+.ws-tab {
+  padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px;
+  font-weight: 500; cursor: pointer; border: 0.5px solid var(--border2);
+  background: var(--surface2); color: var(--muted); font-family: inherit;
+  transition: all 0.15s;
+}
+.ws-tab:hover { color: var(--text); }
+.ws-tab.active { background: var(--accent-light); border-color: var(--accent-border); color: #a89fff; }
+
+/* ── SUGGESTION CARDS ── */
+.sug-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 1rem 1.1rem; margin-bottom: 8px;
+  cursor: pointer; transition: all 0.2s;
+}
+.sug-card:hover { border-color: var(--teal); background: var(--teal-light); }
+.sug-card-text { font-size: 14px; color: var(--muted); line-height: 1.75; }
+.sug-card-btn { font-size: 11px; color: var(--teal); margin-top: 6px; font-weight: 500; }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 560px) {
   .wrap { padding: 2rem 1rem 3rem; }
@@ -438,9 +458,35 @@ hr { border: none; border-top: 0.5px solid var(--border); margin: 2rem 0; }
     <div class="q-step-dots" id="ws-dots"></div>
     <div class="q-step-label" id="ws-step-label"></div>
     <h2 id="ws-q-title" style="margin-bottom:.6rem;"></h2>
-    <p id="ws-q-text" style="font-size:16px;color:var(--text);margin-bottom:1.2rem;line-height:1.8;"></p>
-    <textarea id="ws-input" placeholder="팀이 함께 토론한 내용을 자유롭게 입력하세요..."></textarea>
-    <div id="ws-feedback"></div>
+    <p id="ws-q-text" style="font-size:16px;color:var(--text);margin-bottom:1rem;line-height:1.8;"></p>
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:6px;margin-bottom:1rem;">
+      <button class="ws-tab active" id="tab-write" onclick="switchTab('write')">✏️ 직접 작성</button>
+      <button class="ws-tab" id="tab-suggest" onclick="switchTab('suggest')">💬 AI 답변 추천</button>
+      <button class="ws-tab" id="tab-feedback" onclick="switchTab('feedback')" style="display:none;">🔍 AI 피드백</button>
+    </div>
+
+    <!-- 직접 작성 탭 -->
+    <div id="panel-write">
+      <textarea id="ws-input" placeholder="팀이 함께 토론한 내용을 자유롭게 입력하세요..."></textarea>
+    </div>
+
+    <!-- AI 답변 추천 탭 -->
+    <div id="panel-suggest" style="display:none;">
+      <div id="suggest-content">
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;gap:8px;" onclick="loadSuggestions()">
+          <span class="spinner" style="width:14px;height:14px;border-width:2px;display:none;" id="sug-spinner"></span>
+          💬 AI 답변 예시 불러오기
+        </button>
+      </div>
+    </div>
+
+    <!-- AI 피드백 탭 -->
+    <div id="panel-feedback" style="display:none;">
+      <div id="ws-feedback"></div>
+    </div>
+
     <div class="nav-row">
       <button class="btn btn-ghost" id="ws-prev" onclick="wsNav(-1)">← 이전</button>
       <button class="btn btn-primary" id="ws-next" onclick="wsNav(1)">AI 피드백 받기</button>
@@ -461,28 +507,26 @@ hr { border: none; border-top: 0.5px solid var(--border); margin: 2rem 0; }
       <div class="report-heading">팀 건강도 요약</div>
       <div class="score-grid" id="r-score-grid"></div>
     </div>
-
     <hr/>
-
     <div class="report-section">
       <div class="report-heading">선택한 딜레마</div>
       <div class="card" id="r-dilemma" style="font-size:14px;color:var(--muted);line-height:1.8;font-style:italic;"></div>
     </div>
-
     <hr/>
-
     <div class="report-section">
       <div class="report-heading">우리 팀이 발견한 것</div>
       <div id="r-answers"></div>
     </div>
-
     <hr/>
-
     <div class="report-section">
-      <div class="report-heading">AI 코치 종합 피드백 & 솔루션</div>
-      <div id="r-final-ai"><div class="final-ai" style="display:flex;align-items:center;gap:12px;"><div class="spinner"></div><span style="color:var(--muted);font-size:14px;">종합 피드백 생성 중...</span></div></div>
+      <div class="report-heading">AI 코치 종합 리포트</div>
+      <div id="r-final-ai">
+        <div style="display:flex;align-items:center;gap:12px;padding:1.5rem;background:var(--surface);border-radius:var(--radius);border:0.5px solid var(--border);">
+          <div class="spinner"></div>
+          <span style="color:var(--muted);font-size:14px;">조직문화 관점에서 종합 분석 중...</span>
+        </div>
+      </div>
     </div>
-
     <div style="margin-top:2rem;">
       <button class="btn btn-ghost" onclick="resetAll()">← 처음으로 돌아가기</button>
     </div>
@@ -733,17 +777,84 @@ function renderWsStep() {
   document.getElementById('ws-q-text').textContent = q.text;
   document.getElementById('ws-input').value = wsAnswers[wsStep] || '';
   document.getElementById('ws-feedback').innerHTML = wsFeedbacks[wsStep] || '';
+  document.getElementById('suggest-content').innerHTML = `
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;gap:8px;" onclick="loadSuggestions()">
+      💬 AI 답변 예시 불러오기
+    </button>`;
+
+  // 피드백 탭 표시 여부
+  const hasFb = !!wsFeedbacks[wsStep];
+  document.getElementById('tab-feedback').style.display = hasFb ? '' : 'none';
+
+  // 탭 초기화 (직접 작성으로)
+  switchTab('write');
 
   const dots = document.getElementById('ws-dots');
   dots.innerHTML = WS_QUESTIONS.map((_,i) =>
     `<div class="q-dot ${i<wsStep?'done':i===wsStep?'current':''}"></div>`
   ).join('');
 
-  const hasFb = !!wsFeedbacks[wsStep];
   const isLast = wsStep === WS_QUESTIONS.length - 1;
   document.getElementById('ws-next').textContent = hasFb ? (isLast ? '솔루션 리포트 보기 →' : '다음 질문 →') : 'AI 피드백 받기';
   document.getElementById('ws-prev').style.visibility = wsStep === 0 ? 'hidden' : 'visible';
   setProgress(50 + (wsStep / WS_QUESTIONS.length) * 30);
+}
+
+function switchTab(name) {
+  ['write','suggest','feedback'].forEach(t => {
+    document.getElementById('tab-' + t)?.classList.toggle('active', t === name);
+    document.getElementById('panel-' + t).style.display = t === name ? '' : 'none';
+  });
+}
+
+async function loadSuggestions() {
+  const btn = document.getElementById('suggest-content');
+  btn.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:1rem;color:var(--muted);font-size:14px;"><div class="spinner"></div> AI가 답변 예시를 작성하고 있어요...</div>`;
+
+  const isLocal = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  if (isLocal) {
+    await new Promise(r => setTimeout(r, 1000));
+    renderSuggestions(['저희 팀에서 가장 크게 느끼는 부담은 의견을 말했을 때 받을 수 있는 부정적인 반응입니다. 특히 윗사람의 눈치를 보게 되어 솔직한 이야기를 꺼내기 어렵습니다.',
+      '정보가 특정 사람에게만 집중되어 있어서, 내가 모르는 사이에 중요한 결정이 내려지는 경우가 많습니다. 이런 상황이 반복되면 소외감과 불신이 쌓입니다.',
+      '팀 내에서 실수를 인정하면 능력 없는 사람으로 보일까봐 걱정됩니다. 그래서 문제가 생겨도 혼자 해결하려다 더 크게 번지는 경우가 있습니다.']);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'suggestion',
+        dilemma: DILEMMAS[selectedDilemma],
+        question: WS_QUESTIONS[wsStep].text,
+        stepLabel: WS_QUESTIONS[wsStep].label
+      })
+    });
+    const data = await res.json();
+    const sugs = data.feedback?.suggestions || [];
+    renderSuggestions(sugs);
+  } catch {
+    btn.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:1rem;">추천 답변을 불러오지 못했습니다. 다시 시도해주세요.</div>`;
+  }
+}
+
+function renderSuggestions(sugs) {
+  const el = document.getElementById('suggest-content');
+  el.innerHTML = `<p style="font-size:12px;color:var(--muted);margin-bottom:10px;">클릭하면 답변란에 자동으로 입력됩니다.</p>` +
+    sugs.map((s, i) => `
+      <div class="sug-card" onclick="useSugCard(this)">
+        <div class="sug-card-text">${s}</div>
+        <div class="sug-card-btn">이 답변 사용하기 →</div>
+      </div>`).join('');
+}
+
+function useSugCard(el) {
+  const text = el.querySelector('.sug-card-text').textContent;
+  document.getElementById('ws-input').value = text;
+  switchTab('write');
+  document.getElementById('ws-input').focus();
 }
 
 async function wsNav(dir) {
@@ -807,6 +918,9 @@ async function fetchWsFeedback(answer) {
   } finally {
     overlay(false);
     renderWsStep();
+    // 피드백 탭 자동 열기
+    document.getElementById('tab-feedback').style.display = '';
+    switchTab('feedback');
   }
 }
 
@@ -923,25 +1037,53 @@ async function buildReport() {
 
 function renderFinalFeedback(f) {
   const sols = Array.isArray(f.solutions) ? f.solutions : [];
+  const criteria = Array.isArray(f.feedback_criteria) ? f.feedback_criteria : [];
+
   return `
   <div style="display:flex;flex-direction:column;gap:10px;">
-    <div class="ai-card card-diagnosis" style="border-radius:var(--radius-sm);padding:1rem 1.1rem;">
-      <div class="ai-card-label"><span class="ico">🔍</span> 핵심 고민 패턴 진단</div>
-      <div class="ai-card-text" style="font-size:14px;color:var(--text);">${f.pattern || ''}</div>
+
+    <div class="ai-card" style="border-radius:var(--radius-sm);padding:1.1rem 1.2rem;border-color:rgba(108,99,245,0.3);">
+      <div class="ai-card-label"><span class="ico">📋</span> 워크숍 요약</div>
+      <div class="ai-card-text" style="font-size:14px;color:var(--text);">${f.summary || ''}</div>
     </div>
-    <div class="ai-card card-empathy" style="border-radius:var(--radius-sm);padding:1rem 1.1rem;">
-      <div class="ai-card-label"><span class="ico">💙</span> AI 코치의 응원</div>
-      <div class="ai-card-text" style="font-size:14px;color:var(--text);">${f.cheer || ''}</div>
+
+    <div class="ai-card" style="border-radius:var(--radius-sm);padding:1.1rem 1.2rem;border-color:rgba(62,207,170,0.3);">
+      <div class="ai-card-label"><span class="ico">🏢</span> 조직문화 관점 진단</div>
+      <div class="ai-card-text" style="font-size:14px;color:var(--text);">${f.culture_diagnosis || ''}</div>
     </div>
-    <div class="ai-card card-reframe" style="border-radius:var(--radius-sm);padding:1rem 1.1rem;">
+
+    ${criteria.length > 0 ? `
+    <div class="ai-card" style="border-radius:var(--radius-sm);padding:1.1rem 1.2rem;border-color:rgba(240,160,48,0.3);">
+      <div class="ai-card-label"><span class="ico">📊</span> 피드백 기준별 분석</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        ${criteria.map(c => `
+          <div style="padding:8px 10px;background:var(--bg);border-radius:var(--radius-xs);border-left:2px solid var(--amber);">
+            <div style="font-size:11px;color:var(--amber);font-weight:500;margin-bottom:3px;">${c.label}</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.65;">${c.comment}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="ai-card" style="border-radius:var(--radius-sm);padding:1.1rem 1.2rem;border-color:rgba(108,99,245,0.3);">
       <div class="ai-card-label"><span class="ico">💡</span> 전문가 추천 솔루션 (제3의 대안)</div>
-      ${sols.map((s,i) => `<div class="ai-card-text" style="font-size:14px;color:var(--text);padding:4px 0;border-bottom:${i<sols.length-1?'0.5px solid var(--border)':'none'}"><span style="color:var(--amber);font-weight:500;">${i+1}.</span> ${s}</div>`).join('')}
+      ${sols.map((s,i) => `
+        <div style="font-size:14px;color:var(--text);padding:6px 0;${i<sols.length-1?'border-bottom:0.5px solid var(--border);':''}">
+          <span style="color:var(--accent);font-weight:500;">${i+1}.</span> ${s}
+        </div>`).join('')}
     </div>
-    <div class="ai-card card-action" style="border-radius:var(--radius-sm);padding:1rem 1.1rem;">
+
+    <div class="ai-card" style="border-radius:var(--radius-sm);padding:1.1rem 1.2rem;border-color:rgba(232,92,110,0.3);">
       <div class="ai-card-label"><span class="ico">✅</span> 내일 당장 실천할 한 가지</div>
       <div class="ai-card-text" style="font-size:14px;color:var(--text);">${f.action || ''}</div>
     </div>
+
+    <div class="ai-card" style="border-radius:var(--radius-sm);padding:1.1rem 1.2rem;border-color:rgba(62,207,170,0.25);background:var(--teal-light);">
+      <div class="ai-card-label"><span class="ico">💙</span> AI 코치의 응원</div>
+      <div class="ai-card-text" style="font-size:14px;color:var(--text);font-style:italic;">${f.cheer || ''}</div>
+    </div>
+
   </div>`;
+}
 }
 
 // ── RESET ────────────────────────────────────────────────────────────────────
