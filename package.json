@@ -1,0 +1,6 @@
+{
+  "name": "team-health-workshop",
+  "version": "1.0.0",
+  "description": "팀 건강도 & 딜레마 워크숍 앱",
+  "engines": { "node": ">=18" }
+}
