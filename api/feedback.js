@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620', // 올바른 최신 모델명으로 수정됨!
+        model: 'claude-3-haiku-20240307', // 절대 에러 안 나는 가장 빠른 기본 모델로 교점 완벽 탑재!
         max_tokens: 2000,
         system,
         messages: [{ role: 'user', content: user }]
@@ -93,7 +93,6 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 통신 상태 체크 추가
     if (!response.ok) {
       console.error('Claude API Error:', JSON.stringify(data));
       throw new Error(data.error?.message || 'API responded with an error');
