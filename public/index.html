@@ -464,7 +464,7 @@ hr { border: none; border-top: 0.5px solid var(--border); margin: 2rem 0; }
     <div style="display:flex;gap:6px;margin-bottom:1rem;">
       <button class="ws-tab active" id="tab-write" onclick="switchTab('write')">✏️ 직접 작성</button>
       <button class="ws-tab" id="tab-suggest" onclick="switchTab('suggest')">💬 AI 답변 추천</button>
-      <button class="ws-tab" id="tab-feedback" onclick="switchTab('feedback')" style="display:none;">🔍 AI 피드백</button>    </div>
+    </div>
 
     <!-- 직접 작성 탭 -->
     <div id="panel-write">
@@ -475,20 +475,14 @@ hr { border: none; border-top: 0.5px solid var(--border); margin: 2rem 0; }
     <div id="panel-suggest" style="display:none;">
       <div id="suggest-content">
         <button class="btn btn-ghost" style="width:100%;justify-content:center;gap:8px;" onclick="loadSuggestions()">
-          <span class="spinner" style="width:14px;height:14px;border-width:2px;display:none;" id="sug-spinner"></span>
           💬 AI 답변 예시 불러오기
         </button>
       </div>
     </div>
 
-    <!-- AI 피드백 탭 -->
-    <div id="panel-feedback" style="display:none;">
-      <div id="ws-feedback"></div>
-    </div>
-
     <div class="nav-row">
       <button class="btn btn-ghost" id="ws-prev" onclick="wsNav(-1)">← 이전</button>
-      <button class="btn btn-primary" id="ws-next" onclick="wsNav(1)">AI 피드백 받기</button>
+      <button class="btn btn-primary" id="ws-next" onclick="wsNav(1)">다음 질문 →</button>
     </div>
   </div>
 </div>
@@ -775,17 +769,11 @@ function renderWsStep() {
   document.getElementById('ws-q-title').textContent = q.title;
   document.getElementById('ws-q-text').textContent = q.text;
   document.getElementById('ws-input').value = wsAnswers[wsStep] || '';
-  document.getElementById('ws-feedback').innerHTML = wsFeedbacks[wsStep] || '';
   document.getElementById('suggest-content').innerHTML = `
     <button class="btn btn-ghost" style="width:100%;justify-content:center;gap:8px;" onclick="loadSuggestions()">
       💬 AI 답변 예시 불러오기
     </button>`;
 
-  // 피드백 탭 표시 여부
-  const hasFb = !!wsFeedbacks[wsStep];
-  document.getElementById('tab-feedback').style.display = hasFb ? '' : 'none';
-
-  // 탭 초기화 (직접 작성으로)
   switchTab('write');
 
   const dots = document.getElementById('ws-dots');
@@ -794,13 +782,13 @@ function renderWsStep() {
   ).join('');
 
   const isLast = wsStep === WS_QUESTIONS.length - 1;
-  document.getElementById('ws-next').textContent = hasFb ? (isLast ? '솔루션 리포트 보기 →' : '다음 질문 →') : 'AI 피드백 받기';
+  document.getElementById('ws-next').textContent = isLast ? '솔루션 리포트 보기 →' : '다음 질문 →';
   document.getElementById('ws-prev').style.visibility = wsStep === 0 ? 'hidden' : 'visible';
   setProgress(50 + (wsStep / WS_QUESTIONS.length) * 30);
 }
 
 function switchTab(name) {
-  ['write','suggest','feedback'].forEach(t => {
+  ['write','suggest'].forEach(t => {
     document.getElementById('tab-' + t)?.classList.toggle('active', t === name);
     document.getElementById('panel-' + t).style.display = t === name ? '' : 'none';
   });
@@ -865,11 +853,11 @@ async function wsNav(dir) {
   if (!val) { alert('팀 답변을 입력해주세요.'); return; }
   wsAnswers[wsStep] = val;
 
-  if (!wsFeedbacks[wsStep]) {
-    await fetchWsFeedback(val);
+  if (wsStep < WS_QUESTIONS.length - 1) {
+    wsStep++;
+    renderWsStep();
   } else {
-    if (wsStep < WS_QUESTIONS.length - 1) { wsStep++; renderWsStep(); }
-    else buildReport();
+    buildReport();
   }
 }
 
